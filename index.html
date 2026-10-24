@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121420">
+<meta name="description" content="キャラクターのプロフィール、世界観、シーンからブラウザだけでBGMを作るPlotune。API不要、無料の作曲ツール。">
+<title>Plotune — 物語からBGMを作る</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color-scheme:dark;background:#111320;color:#f7f3ff;font-size:16px}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#302548 0,#171a2b 45%,#111320 90%);min-height:100vh}
+main{max-width:740px;padding:24px 17px calc(45px + env(safe-area-inset-bottom));margin:auto}
+h1{font-size:clamp(30px,7vw,42px);margin:4px 0 6px;letter-spacing:-1px}
+h2{font-size:20px;margin:0 0 12px}
+h3{font-size:17px;margin:0 0 14px}
+h4{font-size:14px;margin:15px 0 8px}
+p{line-height:1.65}
+.lead{color:#c8c2da;margin:0 0 25px}
+.card{background:#212337;border:1px solid #403c53;border-radius:19px;padding:20px;margin:16px 0;box-shadow:0 12px 35px #05061020}
+label{display:block;font-weight:650;font-size:14px;margin:15px 0 7px}
+textarea,input,select{width:100%;font:inherit;color:#fff;background:#121522;border:1px solid #5c5970;border-radius:11px;padding:13px;outline:none}
+textarea:focus,input:focus,select:focus{border-color:#b39fff;box-shadow:0 0 0 2px #a796ff22}
+textarea{min-height:94px;resize:vertical;line-height:1.55}
+select{appearance:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}
+button{touch-action:manipulation;border:1px solid transparent;border-radius:12px;background:#b3a0ff;color:#161326;padding:12px 15px;font:inherit;font-weight:700;cursor:pointer}
+button.alt{background:#32344c;border-color:#59556c;color:#f7f3ff}
+button:disabled{opacity:.38;cursor:default}
+button:focus-visible{outline:3px solid white;outline-offset:2px}
+.note,.muted{color:#bcb7d0}
+.note{font-size:13px}
+#summary{color:#e1d8ff;font-size:14px;margin:4px 0 10px}
+#status{min-height:26px;color:#d3c6ff;font-size:14px;margin-top:12px}
+#status.error{color:#ff9caa}
+.report{display:grid;gap:12px}
+.report-row{display:flex;justify-content:space-between;gap:20px;font-size:14px;align-items:baseline}
+.report-row strong{text-align:right}
+.explain{color:#bbb8cd;font-size:13px;margin:10px 0}
+.arc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.arc-item{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:#e0d8f6}
+.arc-bar{background:#131526;border:1px solid #49415c;border-radius:10px;height:77px;width:100%;display:flex;align-items:flex-end;overflow:hidden}
+.arc-fill{width:100%;background:linear-gradient(0deg,#8671e9,#d3bfff);border-radius:7px 7px 0 0}
+#analysis[hidden],#comparison[hidden],#bandOptions[hidden],#gameOptions[hidden],#eventCompare[hidden]{display:none}
+#eventCompare{padding-top:10px;border-top:1px solid #4d4865;margin-top:20px}
+#changeDiagnosis{font-size:13px;line-height:1.7;color:#ded2ff;margin:13px 0}
+#trackDiff{display:grid;gap:7px;margin-top:10px}
+.track-line{background:#151728;border:1px solid #46425c;border-radius:9px;padding:10px;font-size:13px}
+.compare-help{font-size:13px;color:#c2bcdb}
+#cueSelect{margin-bottom:8px}
+.event{display:flex;flex-direction:column;gap:5px;padding:10px;margin:7px 0;background:#161929;border-radius:10px}
+.event-cue{font-weight:700;color:#dccbff;font-size:13px}.event-text{font-size:13px}
+#comparison{padding:12px;border-top:1px solid #45405d;margin-top:14px}
+.dual-tracks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}
+.dual-tracks button{min-height:53px;padding:11px 6px;font-size:15px}
+#runtimeVersion{font-size:12px;margin:4px 0 7px;color:#aea7cc}
+#playerHint{margin:11px 0}
+#zetaProgress[hidden],#zetaDownload[hidden]{display:none!important}
+.loop-controls{display:flex;align-items:center;gap:10px;padding:12px 0;margin:2px 0 12px}
+.loop-controls label{font-weight:650;margin:0;font-size:14px}
+#loopPlayback{appearance:auto;display:inline-block;width:22px;height:22px;padding:0;margin:0;accent-color:#b3a0ff;flex:none}
+.loop-note{font-size:12px;color:#b9b1d2;margin:0 0 12px}
+.comparison-quality{font-size:13px;line-height:1.65;color:#e2d9ff;background:#151729;
+ border:1px solid #514669;border-radius:12px;padding:12px;margin:12px 0 16px}
+.footer{font-size:12px;color:#aca6bf;line-height:1.7;padding:0 2px}
+@media(max-width:380px){.two{grid-template-columns:1fr}.card{padding:16px}.actions button{flex:1}}
+</style>
+<script defer src="analyzer.js"></script>
+<script defer src="resonare-v08.js"></script>
+<script defer src="composer-v04.js"></script>
+<script defer src="loop-arranger-v09.js"></script>
+<script defer src="band-v09.js"></script>
+<script defer src="band-piano-v15.js"></script>
+<script defer src="comparison-v13.js"></script>
+<script defer src="story-structure-v01.js?v=20261018-psych1"></script>
+<script defer src="music-psychology-v01.js?v=20261019-research1"></script>
+<script defer src="motif-planner-v01.js?v=20261022-phase2"></script>
+<script defer src="m3-harmony-melody-v01.js?v=20261022-m3"></script><script defer src="m2-emotion-phrase-v01.js?v=20261022-m2"></script><script defer src="melodic-grammar-v01.js?v=20261022-motif1"></script><script defer src="m4-voice-dialogue-v01.js?v=20261022-m4"></script><script defer src="m5-performance-v01.js?v=20261023-m5"></script><script defer src="handheld-v21.js?v=20261022-arrangement1"></script>
+<script defer src="zeta-export-v12.js"></script>
+<script defer src="generation-trace-v01.js?v=20261019-research1"></script>
+<script defer src="m7-generation-v01.js?v=20261023-m71"></script>
+<script defer src="app-v13.js?v=20261019-trace1"></script>
+<script defer src="m7-listening-v01.js?v=20261023-m73"></script>
+<script defer src="m7-evaluation-v01.js?v=20261023-m73"></script>
+<script defer src="m7-diagnostics-v01.js?v=20261024-m74"></script>
+</head>
+<body>
+<main>
+<header>
+<h1>🎼 Plotune <small style="font-size:13px;color:#c0aaff;vertical-align:middle">v2.4</small></h1>
+<p class="lead">物語のシーンを、キャラクターらしい音楽に。</p>
+</header>
+<section class="card">
+<h2>✍️ 物語の設定</h2>
+<label for="title">作品名</label>
+<input id="title" placeholder="たぬきの里 など" value="夕暮れの小さな冒険">
+<label for="character">キャラクターのプロフィール</label>
+<textarea id="character" placeholder="性格、口調、行動、関係性、印象的な特徴など">好奇心旺盛で少し臆病な旅人。小さな発見に喜び、困難には立ち止まりながらも前へ進む。</textarea>
+<label for="world">世界観・設定</label>
+<textarea id="world" placeholder="舞台、季節、時代、物語の雰囲気など">秋の夕暮れ。静かな森と古い石畳の道。懐かしさと不思議さが共存する世界。</textarea>
+<label for="scene">今回のシーン</label>
+<textarea id="scene" style="min-height:145px" placeholder="例：ぽんぽんは得意げにほうきを持ち上げた。ところが畳に引っかかり、ころんと転ぶ。しばらくして、もう一度そっと挑戦する。">旅人は森の奥で淡く光る小道を見つける。最初は足を止めるが、風に揺れる光を追って歩き出す。やがて視界が開け、遠くに温かな街の灯りが見えた。</textarea>
+<div class="two">
+<div><label for="style">曲調</label><select id="style">
+<option value="auto">🎭 物語から自動判定</option>
+<option value="chip">🎮 8bit・コミカル</option>
+<option value="handheld" selected>🎹 DS風ゲームサウンド（多層アンサンブル）</option>
+<option value="piano">🎹 ピアノ風</option>
+<option value="horror">🌘 ホラー・不穏</option>
+<option value="pop">✨ ポップ</option>
+<option value="fantasy">🪄 ファンタジー</option>
+<option value="band">🎸 3ピースバンド</option>
+<option value="bandpiano">🎹 3ピース＋ピアノユニゾン</option>
+<option value="ambient">🌙 アンビエント</option>
+</select></div>
+<div><label for="duration">長さ</label><select id="duration"><option value="15">15秒</option><option value="30" selected>30秒</option><option value="60">60秒</option></select></div>
+</div>
+<div id="bandOptions" hidden>
+<label for="bandStyle">🎸 バンドの音楽性</label>
+<select id="bandStyle">
+<option value="indie">インディーロック（軽快なギター）</option>
+<option value="rock">ギターロック（力強いコード）</option>
+<option value="punk">疾走パンク（速い8ビート）</option>
+<option value="ballad">バンドバラード（静かな導入からサビへ）</option>
+<option value="glassrock">透明感・メロディックロック（重なるギターと動くベース）</option>
+</select>
+<p class="note">3ピースはギター・ベース・ドラム。ピアノユニゾン版はギターの主旋律にピアノを重ね、合間にピアノの短いフレーズも入れます。どちらもiPhone内で合成します。</p>
+</div>
+<div id="gameOptions" hidden>
+<label for="gameStyle">🎮 携帯ゲーム風の音楽性</label>
+<select id="gameStyle">
+<option value="journey">🌄 冒険・フィールド（明るい電子オーケストラ）</option>
+<option value="village">🏘️ 街・タウン（温かなメロディー）</option>
+<option value="mischief">🎈 コミカル・ドタバタ（跳ねるリズム）</option>
+<option value="mystery">🔮 ふしぎ・探索（透明感のある音）</option>
+</select>
+<p class="note">既存のDS曲調を選ぶだけ。シーンを読んでオカリナ・シンセ・ハープなどを自動編成し、旋律やリズムまで変えます。7系統の独立したパートを端末内で合成。既存ゲームの曲や音源は使用しません。</p>
+</div>
+<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="emotionComposition" style="width:22px;height:22px">🎼 感情目標を音楽に反映（Phase 1実験・通常音源）</label>
+<p class="note">チェック時は感情表現OFFとONを同じ曲・同じシード・同じ編成で比較します（Resonareの変化は混ぜません）。携帯ゲーム風・バンド曲は対象外。</p>
+<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="harmonyComparison" style="width:22px;height:22px">🎼 M3 和声連動だけをOFF／ONで聴き比べる</label>
+<p class="note">DS風サウンドで使用。旋律・テンポ・楽器・シードを共通にして、和声連動の違いを比較します。</p>
+<label style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="phase3Comparison" style="width:22px;height:22px">🎼 Phase 3 表現力 OFF／ONで聴き比べる</label>
+<p class="note">DS風サウンドで使用。Phase 2の主題発展を両方に適用し、ONだけにフレーズの感情変化・和声連動・声部対話・演奏表情を追加します。M3単独比較より優先します。</p>
+<label for="engine">解析エンジン</label><select id="engine"><option value="resonare">Resonare型（実験版）</option><option value="classic">基準アレンジ（出来事に反応しない）</option></select>
+<div class="actions">
+<button id="compare" class="alt" type="button">⚖️ 2曲を作り直す</button>
+<button id="analyze" class="alt" type="button">🔍 文章を解析</button>
+<button id="make" type="button">✨ 2曲まとめて作曲</button>
+<button id="save" class="alt" type="button">設定を保存</button>
+<button id="loadSaved" class="alt" type="button">保存した設定を読み込む</button>
+</div>
+</section>
+<section class="card" id="m7Panel" aria-label="M7 4条件聴き比べ">
+<h2>🎧 M7：4条件の聴き比べ</h2>
+<p class="note">DS風ゲームサウンド専用。同じseed・曲長で4曲を生成し、再生中に切り替えると同じ位置から続きます。</p>
+<label for="m7Seed">比較用seed</label><input id="m7Seed" type="number" min="0" max="4294967295" step="1" value="20261023">
+<div class="actions"><button id="m7Make" type="button">🎼 4曲を生成して聴き比べ</button></div>
+<div class="actions dual-tracks">
+<button id="m7Play-baseline" class="alt" disabled type="button">▶ Baseline</button>
+<button id="m7Play-phase" class="alt" disabled type="button">▶ Phase</button>
+<button id="m7Play-m" class="alt" disabled type="button">▶ M</button>
+<button id="m7Play-phase-m" class="alt" disabled type="button">▶ Phase + M</button>
+</div>
+<div class="actions"><button id="m7Stop" class="alt" disabled type="button">■ 4条件再生を停止</button></div>
+<p id="m7Status" role="status" aria-live="polite" class="note">4曲を生成すると再生できます。</p>
+<p class="note">音量は曲ごとに一定ゲインで補正し、曲中の強弱は維持します。</p>
+</section>
+<section class="card" id="m7Evaluation" hidden>
+<h2>📝 M7.3：聴取評価</h2>
+<p class="note">4曲を聴いて各項目を1〜5で評価。未評価は空欄のまま保存できます。数値はあなたの主観評価で、自動採点ではありません。</p>
+<div id="m7RatingFields"></div>
+<div class="actions"><button id="m7RatingSave" type="button">評価を端末に保存</button><button id="m7RatingExport" class="alt" type="button">評価JSONを保存</button></div>
+<p id="m7RatingStatus" role="status" aria-live="polite"></p>
+</section>
+<section class="card" id="m7Diagnostics" hidden><h2>📊 M7.4：4条件の客観診断</h2><p class="note">生成された音符とPCMの記述統計です。数値の大小は音楽の良し悪しを意味しません。</p><div id="m7DiagnosticsBody" style="overflow-x:auto"></div></section>
+<section class="card" id="analysis" hidden aria-live="polite"></section>
+<section class="card">
+<h2>🎶 プレイヤー</h2>
+<p id="summary">まだ曲を作成していません。作曲すると冒頭から編曲の異なる基準版とResonare版を比較できます（文章の根拠が薄い場合は同一編曲）。</p>
+<p id="runtimeVersion" class="note">作曲プログラムを読み込み中…</p>
+<p id="playerHint" class="compare-help">「✨ 2曲まとめて作曲」を押すと、下の2つのボタンが使えるようになるよ。</p>
+<div class="actions dual-tracks">
+<button id="classicPlay" class="alt" disabled type="button">▶ 基準版</button>
+<button id="resonarePlay" class="alt" disabled type="button">▶ Resonare版</button>
+</div>
+<p class="note">冒頭10秒／変化場面だけで聴き比べ</p>
+<div class="actions dual-tracks">
+<button id="classicClip" class="alt" disabled type="button">▶ 10秒比較・基準版</button>
+<button id="resonareClip" class="alt" disabled type="button">▶ 10秒比較・Resonare版</button>
+</div>
+<div class="loop-controls">
+<input id="loopPlayback" type="checkbox" checked>
+<label for="loopPlayback">曲を繰り返して再生</label>
+</div>
+<p class="loop-note">バンド・DS風ゲームサウンドは小節の長さを揃え、繰り返してもつながるように調整します。</p>
+<p id="contrastAssessment" class="comparison-quality" role="status" aria-live="polite">
+作曲後に「どれくらい編曲が変わったか」を表示します。
+</p>
+<div class="actions">
+<button id="play" disabled type="button">▶ 再生</button>
+<button id="stop" class="alt" disabled type="button">■ 停止</button>
+<button id="reroll" class="alt" disabled type="button">↻ 2曲とも別アレンジ</button>
+<button id="wav" class="alt" disabled type="button">↓ WAV保存</button>
+<button id="zeta" class="alt" disabled type="button">🎵 Zeta用M4A保存</button>
+</div>
+<progress id="zetaProgress" max="100" value="0" hidden style="display:block;width:100%;margin-top:14px"></progress>
+<p><a id="zetaDownload" hidden download style="display:inline-block;padding:12px 18px;border-radius:12px;background:#b3a0ff;color:#161326;font-weight:750;text-decoration:none">↓ 完成したZeta用ファイルを保存</a></p>
+<p id="zetaHelp" class="note">Zeta対応：M4A／30秒〜5分／最大20MB。変換には曲の長さと同程度の時間がかかります（Safari標準機能を使用）。</p>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="comparison" hidden>
+<h3>🎧 A/B聴き比べ（同じ位置で切り替え）</h3>
+<p id="comparisonInfo" class="explain"></p>
+<details><summary>🔎 この曲ができた理由（生成判断ログ）</summary><pre id="generationTrace" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.7"></pre></details>
+<h4>曲全体を聴き比べ</h4>
+<p class="compare-help">プレイヤー上部の「基準版」「Resonare版」を再生中に切り替えると、同じ位置から続くよ。</p>
+<div id="eventCompare" hidden>
+<h4>変化した場面だけを聴き比べ</h4>
+<label for="cueSelect">比較する出来事を選ぶ（差が大きい順）</label>
+<select id="cueSelect" disabled></select>
+<p id="clipPosition" class="compare-help"></p>
+<p class="compare-help">3ピースバンドは冒頭0〜10秒も選べるよ。ループ版は物語全体を先に解析して、最初から音楽を決めます。A/Bは同じ位置で切り替え可能。</p>
+<h4>この場面の変化</h4>
+<p id="changeDiagnosis"></p>
+<div id="trackDiff"></div>
+</div>
+</div>
+</section>
+<p class="note"><a href="story-analysis-lab.html" style="color:#d1bfff">🔬 世界観・キャラ・シーンの構造化解析ラボ（開発用）</a></p>
+<p class="footer">作曲に外部API・ログインは不要。Resonare型は実験的な数値モデルで、心情や事実を確定するものではありません。3ピースバンドは生演奏の録音ではなくブラウザ内の合成音です。v1.0ではDS風の多層アンサンブル音源を追加。バンドも物語全体から最初の小節より編曲を決定。ループBGMとして曲調を一貫させ、練習や挑戦も評価対象に含めます。2曲の再生ボタンを常時表示し、同じ再生位置を維持してA/B比較でき、場面別の楽器差分も確認できます。端末内で文章を簡易解析し、メロディー・和音・伴奏を合成します。文章の理解はキーワードとルールに基づく推定で、AIによる意味理解とは異なります。保存済みの設定はこのブラウザに残ります。</p>
+</main>
+</body>
+</html>
